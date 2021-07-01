@@ -157,123 +157,122 @@ void I2CMotorDriver::stop(unsigned char motor_id)
 //         1 -> fine mode (_step1 corresponds 1 steps)
 void I2CMotorDriver::StepperRun(int _step, int _type, int _mode) 
 {
-	int _direction = 1;
-	if (_step > 0) {
-		_direction = 1; //clockwise
-		_step = _step > 1024 ? 1024 : _step;
+  int _direction = 1;
+  if (_step > 0) {
+    _direction = 1; //clockwise
+    _step = _step > 1024 ? 1024 : _step;
+  }
+  else if (_step < 0) {
+    _direction = -1; //anti-clockwise
+    _step = _step < -1024 ? 1024 : -(_step);
+  }
+  this->_speed1 = 255;
+  this->_speed2 = 255;
+  Wire.beginTransmission(this->_i2c_add); // begin transmission
+  Wire.write(MotorSpeedSet);              // set pwm header 
+  Wire.write(this->_speed1);              // send speed of motor1
+  Wire.write(this->_speed2);              // send speed of motor2
+  Wire.endTransmission();    		        // stop transmitting
+  delay(4); 				                // wait
+  
+  if (_type == 1)
+    {
+      if (_direction == 1) {				// 2 phase motor
+	for (int i=0; i<_step; i++) {
+	  if (_mode == 0){
+	    direction(0b0001);
+	    direction(0b0101);
+	    direction(0b0100);
+	    direction(0b0110);
+	    direction(0b0010);
+	    direction(0b1010);
+	    direction(0b1000);
+	    direction(0b1001);
+	  }
+	  else{
+	    switch (_step_cnt){
+	    case 0 : direction(0b0001); direction(0b0101); break;
+	    case 1 : direction(0b0100); direction(0b0110); break;
+	    case 2 : direction(0b0010); direction(0b1010); break;
+	    case 3 : direction(0b1000); direction(0b1001); break;
+	    }
+	    _step_cnt = (_step_cnt + 1) % 4;
+	  }
 	}
-	else if (_step < 0) {
-		_direction = -1; //anti-clockwise
-		_step = _step < -1024 ? 1024 : -(_step);
+      }
+      else if (_direction == -1) {
+	for (int i=0; i<_step; i++) {
+	  if (_mode == 0){
+	    direction(0b1000);
+	    direction(0b1010);
+	    direction(0b0010);
+	    direction(0b0110);
+	    direction(0b0100);
+	    direction(0b0101);
+	    direction(0b0001);
+	    direction(0b1001);
+	  }
+	  else{
+	    switch (_step_cnt){
+	    case 0 : direction(0b1000); direction(0b1010); break;
+	    case 1 : direction(0b0010); direction(0b0110); break;
+	    case 2 : direction(0b0100); direction(0b0101); break;
+	    case 3 : direction(0b0001); direction(0b1001); break;
+	    }
+	    _step_cnt = (_step_cnt + 1) % 4;
+	  }
 	}
-	this->_speed1 = 255;
-	this->_speed2 = 255;
-	Wire.beginTransmission(this->_i2c_add); // begin transmission
- 	Wire.write(MotorSpeedSet);              // set pwm header 
- 	Wire.write(this->_speed1);              // send speed of motor1
-  	Wire.write(this->_speed2);              // send speed of motor2
-  	Wire.endTransmission();    		        // stop transmitting
-  	delay(4); 				                // wait
-
-	if (_type == 1)
-	{
-		if (_direction == 1) {				// 2 phase motor
-			for (int i=0; i<_step; i++) {
-			  if (_mode == 0){
-			    direction(0b0001);
-			    direction(0b0101);
-			    direction(0b0100);
-			    direction(0b0110);
-			    direction(0b0010);
-			    direction(0b1010);
-			    direction(0b1000);
-			    direction(0b1001);
-			  }
-			  else{
-			    switch (_step_cnt){
-			    case 0 : direction(0b0001); direction(0b0101); break;
-			    case 1 : direction(0b0100); direction(0b0110); break;
-			    case 2 : direction(0b0010); direction(0b1010); break;
-			    case 3 : direction(0b1000); direction(0b1001); break;
-			  }
-			  _step_cnt = (_step_cnt + 1) % 4;
-			  }
-			}
-		}
-		else if (_direction == -1) {
-		  for (int i=0; i<_step; i++) {
-		    if (_mode == 0){
-		      direction(0b1000);
-		      direction(0b1010);
-		      direction(0b0010);
-		      direction(0b0110);
-		      direction(0b0100);
-		      direction(0b0101);
-		      direction(0b0001);
-		      direction(0b1001);
-		      }
-		    }
-		    else{
-		      switch (_step_cnt){
-		      case 0 : direction(0b1000); direction(0b1010); break;
-		      case 1 : direction(0b0010); direction(0b0110); break;
-		      case 2 : direction(0b0100); direction(0b0101); break;
-		      case 3 : direction(0b0001); direction(0b1001); break;
-		      }
-		      _step_cnt = (_step_cnt + 1) % 4;
-		    }
-		  }
-		}
+      }
+    }
+  else if (_type == 0)
+    {
+      if (_direction == 1) {				// 4 phase motor
+	for (int i=0; i<_step; i++) {
+	  if (_mode == 0){
+	    direction(0b0001);
+	    direction(0b0011);
+	    direction(0b0010);
+	    direction(0b0110);
+	    direction(0b0100);
+	    direction(0b1100);
+	    direction(0b1000);
+	    direction(0b1001);
+	  }
+	  else{
+	    switch (_step_cnt){
+	    case 0 : direction(0b0001); direction(0b0011); break;
+	    case 2 : direction(0b0010); direction(0b0110); break;
+	    case 3 : direction(0b0100); direction(0b1100); break;
+	    case 4 : direction(0b1000); direction(0b1001); break;
+	    }
+	    _step_cnt = (_step_cnt + 1) % 4;
+	  }
 	}
-	else if (_type == 0)
-	{
-		if (_direction == 1) {				// 4 phase motor
-			for (int i=0; i<_step; i++) {
-			  if (_mode == 0){
-			    direction(0b0001);
-			    direction(0b0011);
-			    direction(0b0010);
-			    direction(0b0110);
-			    direction(0b0100);
-			    direction(0b1100);
-			    direction(0b1000);
-			    direction(0b1001);
-			  }
-			  else{
-			    switch (_step_cnt){
-			    case 0 : direction(0b0001); direction(0b0011); break;
-			    case 2 : direction(0b0010); direction(0b0110); break;
-			    case 3 : direction(0b0100); direction(0b1100); break;
-			    case 4 : direction(0b1000); direction(0b1001); break;
-			    }
-			  _step_cnt = (_step_cnt + 1) % 4;
-			  }
-			}
-		}
-		else if (_direction == -1) {
-			for (int i=0; i<_step; i++) {
-			  if (_mode == 0){
-			    direction(0b1000);
-			    direction(0b1100);
-			    direction(0b0100);
-			    direction(0b0110);
-			    direction(0b0010);
-			    direction(0b0011);
-			    direction(0b0001);
-			    direction(0b1001);
-			  }
-			  else{
-			    switch (_step_cnt){
-			    case 0 : direction(0b1000); direction(0b1100); break;
-			    case 1 : direction(0b0100); direction(0b0110); break;
-			    case 2 : direction(0b0010); direction(0b0011); break;
-			    case 3 : direction(0b0001); direction(0b1001); break;
-			    }
-			    _step_cnt = (_step_cnt + 1) % 4;
-			  }
-			}
-		}
+      }
+      else if (_direction == -1) {
+	for (int i=0; i<_step; i++) {
+	  if (_mode == 0){
+	    direction(0b1000);
+	    direction(0b1100);
+	    direction(0b0100);
+	    direction(0b0110);
+	    direction(0b0010);
+	    direction(0b0011);
+	    direction(0b0001);
+	    direction(0b1001);
+	  }
+	  else{
+	    switch (_step_cnt){
+	    case 0 : direction(0b1000); direction(0b1100); break;
+	    case 1 : direction(0b0100); direction(0b0110); break;
+	    case 2 : direction(0b0010); direction(0b0011); break;
+	    case 3 : direction(0b0001); direction(0b1001); break;
+	    }
+	    _step_cnt = (_step_cnt + 1) % 4;
+	  }
 	}
+      }
+    }
 }
 
 
